@@ -1,9 +1,12 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '../../_context/AuthContext';
+import { dbService } from '../../../lib/database';
 
 const TourContext = createContext();
 
 export function TourProvider({ children }) {
+  const { user, sessionId } = useAuth();
   const [currentPos, setCurrentPos] = useState(1);
   const [sceneScore, setSceneScore] = useState(0);
   const [totalScore, setTotalScore] = useState(0);
@@ -172,12 +175,39 @@ export function TourProvider({ children }) {
   };
 
   // New function to handle finish button click
-  const handleFinishTour = () => {
+  const handleFinishTour = async () => {
     console.log('Finish button clicked, stopping timer at:', timeRemaining);
     setFinishButtonClicked(true);
     setTimerFrozen(true);
     localStorage.setItem('finish_button_clicked', 'true');
     localStorage.setItem('tour_final_time', timeRemaining.toString());
+
+    // Save tour completion data to database
+    if (user && sessionId) {
+      const completionData = {
+        totalScore,
+        timeTaken: 600 - timeRemaining, // Time taken in seconds
+        tourCompleted: true,
+        completedAt: new Date().toISOString(),
+        sessionData: {
+          currentPos,
+          quizCompleted,
+          sceneScore,
+          finalTimeRemaining: timeRemaining
+        }
+      };
+
+      try {
+        const result = await dbService.updateUserSession(user.nim, completionData);
+        if (result.success) {
+          console.log('Tour completion data saved successfully');
+        } else {
+          console.error('Failed to save tour completion data:', result.error);
+        }
+      } catch (error) {
+        console.error('Error saving tour completion data:', error);
+      }
+    }
   };
 
   const completeTourAndReset = () => {
