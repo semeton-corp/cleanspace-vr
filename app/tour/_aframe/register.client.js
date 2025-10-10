@@ -1,6 +1,6 @@
 // app/tour/_aframe/register.client.js
 "use client";
-// import "aframe";
+import "aframe";
 
 if (!AFRAME.components["spin"]) {
   AFRAME.registerComponent("spin", {
